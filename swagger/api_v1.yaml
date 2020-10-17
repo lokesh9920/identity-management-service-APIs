@@ -1,0 +1,382 @@
+openapi: 3.0.0
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: 'http://localhost:9999/identity-management/v1'
+info:
+  description: customized identity-management-service apis
+  version: 1.0.0
+  title: apis for identity-management-service for reveal platform
+  contact:
+    email: tangella.lokesh@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://localhost:9999/identity-management/v1'
+tags: 
+    - name: user-management
+    - name: account-management
+    - name: token-management
+    - name: access-management
+paths:
+  '/users/register':
+    post: 
+      summary: User Registration
+      operationId: User Registration
+      description: The api should be used to Register a user. Ideally consumed by frontend code.
+      security: 
+       - ApiKeyAuth: []
+      tags: 
+        - user-management
+      requestBody:
+        description: All the details required for user to register with reveal platorm.
+        content:
+          application/json:  
+            schema: 
+              $ref: '#/components/schemas/userRegistration'
+      responses: 
+        '201': 
+          description: User is successfully created and user meta data is returned along with jwt token in Authorization header.
+           The header is valid for 10 years.
+          content:
+            application/json: 
+              schema: 
+                  $ref: '#/components/schemas/successRegistration'
+          headers:
+            Authorization: 
+              schema:
+                type: string
+              description: The JWT token issued for the user.
+        '409': 
+          description: Conflicting user name or conflicting email id. It means some one already registred with given username of email id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/clientError'
+        '400': 
+          description: Bad Request, returned incase of missing or mal-formed parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/clientError'
+        '401': 
+          description: API key is invalid or expired.
+          content: 
+            application:json: 
+              schema: 
+                $ref: '#/components/responses/UnauthorizedError'
+  '/users/login': 
+    post:
+      summary: login an existing / registered user.
+      description: The api to be consumed to verify the credentials and login a user. Ideally consumed by fontend code.
+      security: 
+        - ApiKeyAuth: []
+      tags: 
+        - user-management
+      requestBody:
+        description: The details required for a user to prove his/her authenticity.
+        content:
+          application/json: 
+            schema:
+              $ref: '#/components/schemas/userLogin'
+      responses:
+        '200': 
+          description: Successfull login. The user is authenticated to login.
+          headers:
+            Authorization: 
+              schema:
+                type: string
+              description: The JWT token issued for the user.
+            
+        '403': 
+          description: The user is not authenticated and hence not trusted to enter into the application.
+          content:
+              application/json:
+               schema:
+                  $ref: '#/components/schemas/clientError'
+        '401': 
+          description: API key is invalid or expired.
+          content: 
+            application:json: 
+              schema: 
+                $ref: '#/components/responses/UnauthorizedError'
+  '/users/account-management':
+    put:
+      summary: Request unique link for password reset.
+      description: To be consumed, to request a unique (time expiring) link to facilitate a user to reset their password. user name should be sent in request body and if user is already registered, then a unique link is sent to registered mail to reset their mail.
+      security: 
+        - ApiKeyAuth: []
+      tags: 
+        - account-management
+      requestBody:
+        content: 
+          application/json: 
+            schema:
+              $ref: '#/components/schemas/requestreset'
+      responses:
+        '202': 
+          description: Operation Accepted. The user existence is verified and if success, a unique reset link is mailed to the registered email id. Else no operation is performed and considered the requested is completed.
+        '400': 
+          description: Sent in case of malformed or missing parameters
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/clientError'
+        '401': 
+          description: API key is invalid or expired.
+          content: 
+            application:json: 
+              schema: 
+                $ref: '#/components/responses/UnauthorizedError'
+  '/users/account-management/{uniqueIdentifier}': 
+    get: 
+      summary: VIEW API, returns html page. The reset password link sent to user.
+      description: The reset password link mailed to user, where the uuniqueIdentifier is formed with an expiring time stamp. This api returns a html page.
+      security: []
+      tags: 
+        - account-management
+      parameters: 
+        - in: path
+          name: uniqueIdentifier
+          schema: 
+            type: string
+            description: The unique time expiring identifier assigned for the user to reset password.
+          required: true  
+      responses:
+        '200': 
+          description: A html page with UI to enter new password.
+    put:
+      summary: Internal api. Final destination to update password.
+      description: Internal api. Will be consumed by identity-management-service reset password page(link sent to mail for password reset).
+      security: []
+      tags: 
+        - account-management
+      parameters: 
+        - in: path
+          name: uniqueIdentifier
+          schema: 
+            type: string
+            description: The unique time expiring identifier assigned for the user to reset password.
+          required: true
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              $ref: '#/components/schemas/updatedPassword'
+      responses:
+        '200': 
+          description: OK, The password reset is successful.
+        '400': 
+          description: Sent in case of malformed or missing parameters
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/clientError'
+        '404': 
+          description: Resource not found, generally returned when link is broken.
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/clientError'
+        '410': 
+          description: The link is expired
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/clientError'
+    
+  '/tokens/verify': 
+    get: 
+      summary: Verify if the token is valid.
+      description: To be consumed by internal micro-services to check if user is authenticated to access the application/api. This api verifies if the jwt token sent by user is valid and not expired. The signature and authenticity of the user is verified.
+      security: 
+        - ApiKeyAuth: []
+      tags: 
+        - token-management
+      parameters: 
+        - in: header
+          name: auth-token
+          schema:
+            type: string
+            description: The JWT token submitted by user to access apis of the backend/other micro-services.
+            
+      responses: 
+        '200': 
+          description: The JWT token is verified and not expired, i.e. payload, signature are verified and also checked if user is already registered.
+        '403': 
+          description: The JWT token is either invalid/tampered or expired and hence the user should prove his/her authenticity by logging in again.
+          content:
+            application/json:
+               schema:
+                  $ref: '#/components/schemas/clientError'
+        '401': 
+          description: API key is invalid or expired.
+          content: 
+            application:json: 
+              schema: 
+                $ref: '#/components/responses/UnauthorizedError'
+  '/accesskeys': 
+    get: 
+      summary: Check validity of API key.
+      description: Should be consumed by the customer to check the validity of the unique API key issued for them. This api is not secured. Any one can consume this api.
+      security: []
+      tags: 
+        - access-management
+      parameters: 
+        - in: query
+          name: key
+          required: true
+          schema:
+            type: string
+            description: The api key for which user want to verify the validity
+      responses:
+        '200': 
+          description: Returns the metadata from given api key, if a valid api key is provided.
+          content:
+            'application/json': 
+              schema:
+                $ref: '#/components/schemas/apiValidity'
+        '404': 
+          description: Returned for an invalid API key.
+          content:
+            'application/json': 
+              schema:
+                $ref: '#/components/schemas/apiValidity'
+              
+components: 
+  schemas: 
+    userRegistration: 
+        type: object
+        required: 
+          - firstName
+          - lastName
+          - mailId
+          - userName
+          - password
+          - groupName
+        properties: 
+          firstName: 
+            type: string
+            description: The first name of the user.
+            example: Bill
+          lastName: 
+            type: string
+            description: last name of the user.
+            example: Clinton
+          mailId: 
+            type: string
+            description: email id of the user.
+            example: bill.clinton@gmail.com
+          userName: 
+            type: string
+            description: Unique user name for the user. This should be unique across all other users.
+            example: clintonbill13
+          password: 
+            type: string
+            description: password to login to the user account. Suggested not to share with others. As of now although no rules are enforced on the format of the password, but it is suggested to keep it enoughly strong.
+            example: clinton@123
+          groupName: 
+            type: string
+            description: Name of the group to which user choose to belong to.
+            example: Harvard Group
+  
+    successRegistration: 
+      type: object
+      required: 
+          - id
+          - firstName
+          - lastName
+          - mailId
+          - userName
+          - groupId
+      properties: 
+          id: 
+            type: integer
+            format: int64
+            description: id assigned to the user.
+            example: 12
+          firstName: 
+            type: string
+            description: first name of the user
+            example: Bill
+          lastName: 
+            type: string
+            description: last name of the user
+            example: Clinton
+          mailId: 
+            type: string
+            description: mail id of the user
+            example: bill.clinton@gmail.com
+          userName: 
+            description:  user name chosen by the user.
+            type: string
+            example: clintonbill13
+          groupId:  
+            type: integer
+            format: int64
+            description: The group id assigned for the group resource created.
+          
+            
+    userLogin: 
+      type: object
+      properties:
+        userName: 
+          type: string
+          description: The username selected by user at time of registration.
+          example: clintonbill123
+        password: 
+          type: string
+          description: password set by user at the time of registration to login to their account.
+          example: clinton@123
+    requestreset: 
+      type: object
+      required: 
+        - userName
+      properties:
+        userName: 
+          type: string
+          description: The user name of the account for which password reset is requested.
+          example: clintonbill123
+    updatedPassword: 
+      type: object
+      required:
+        - password
+      properties:
+        password: 
+          type: string
+          description: The updated password.
+          example: clinton@123
+    apiValidity:  
+      type: object
+      required: 
+        - customer
+        - validTill
+      properties:
+        customer: 
+          type: string
+          description: The customer to whoom this api is issued to. Generally could be company name or product name.
+          example: Apple
+        validTill: 
+          type: string
+          description: The time stamp till which the api key is valid(in EST).
+          example: "2020-10-16T13:54:11.851+00:00"
+    clientError: 
+      type: object
+      properties:
+        errorMessage:
+          type: string
+          description: Best guess for the request failure.
+          example: Reason for failure.
+  responses: 
+    UnauthorizedError:
+      description: API key is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+            example: mail to owner@idms.com
+  securitySchemes:
+    ApiKeyAuth: 
+      type: apiKey
+      in: header
+      name: X-idms-Auth
+security: 
+  - ApiKeyAuth: []
