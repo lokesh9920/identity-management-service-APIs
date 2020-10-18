@@ -1,16 +1,14 @@
 openapi: 3.0.0
 servers:
-  - description: SwaggerHub API Auto Mocking
-    url: 'http://localhost:9999/identity-management/v1'
+  - description: The Trial version of identity-management-service
+    url: 'https://idms-trial.herokuapp.com/identity-management/v1'
+    
 info:
-  description: customized identity-management-service apis
+  description: identity-management-service apis
   version: 1.0.0
-  title: apis for identity-management-service for reveal platform
+  title: APIs for identity-management-service for reveal platform
   contact:
     email: tangella.lokesh@gmail.com
-  license:
-    name: Apache 2.0
-    url: 'http://localhost:9999/identity-management/v1'
 tags: 
     - name: user-management
     - name: account-management
@@ -194,6 +192,7 @@ paths:
       parameters: 
         - in: header
           name: auth-token
+          required: true
           schema:
             type: string
             description: The JWT token submitted by user to access apis of the backend/other micro-services.
@@ -251,7 +250,6 @@ components:
           - mailId
           - userName
           - password
-          - groupName
         properties: 
           firstName: 
             type: string
@@ -273,10 +271,6 @@ components:
             type: string
             description: password to login to the user account. Suggested not to share with others. As of now although no rules are enforced on the format of the password, but it is suggested to keep it enoughly strong.
             example: clinton@123
-          groupName: 
-            type: string
-            description: Name of the group to which user choose to belong to.
-            example: Harvard Group
   
     successRegistration: 
       type: object
@@ -286,7 +280,6 @@ components:
           - lastName
           - mailId
           - userName
-          - groupId
       properties: 
           id: 
             type: integer
@@ -309,12 +302,6 @@ components:
             description:  user name chosen by the user.
             type: string
             example: clintonbill13
-          groupId:  
-            type: integer
-            format: int64
-            description: The group id assigned for the group resource created.
-          
-            
     userLogin: 
       type: object
       properties:
@@ -378,5 +365,3 @@ components:
       type: apiKey
       in: header
       name: X-idms-Auth
-security: 
-  - ApiKeyAuth: []
