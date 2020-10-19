@@ -9,4 +9,4 @@
 
 Want to play around ? use *A-b6O5nb549M9kSm0z9YSHB8ufTB36jLuTeFOCSZVQU* ApiKey. This key is valid till 15th December'20
 
- ### NOTE: No data storage is guaranteed with trial version, The data might get refreshed/deleted at any point of time without any notice.
+ ### NOTE: No data storage is guaranteed with *trial version*, The data might get refreshed/deleted at any point of time without any notice in trial version.
